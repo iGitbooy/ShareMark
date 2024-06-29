@@ -12,14 +12,7 @@ from modules.federated import ServerModule
 class Server(ServerModule):
 
     def __init__(self, args):
-        """ FedMatch Server
 
-        Performs fedmatch server algorithms 
-        Embeds local models and searches nearest if requird
-
-        Created by:
-            Wonyong Jeong (wyjeong@kaist.ac.kr)
-        """
         super(Server, self).__init__(args, Client)
         self.c2s_sum = []
         self.c2s_sig = []
@@ -36,8 +29,8 @@ class Server(ServerModule):
         mu,std,lower,upper = 125,125,0,255
         self.rgauss = self.loader.scale(truncnorm((lower-mu)/std,(upper-mu)/std, 
                         loc=mu, scale=std).rvs((1,32,32,3))) # fixed gaussian noise for model embedding
-        self.acc_share, self.lss_share = [], []  # - share修改
-        self.lss_local = []  # - fedloss修改
+        self.acc_share, self.lss_share = [], []
+        self.lss_local = []
 
     def build_network(self):
         self.global_model = self.net.build_resnet9(decomposed=True)
@@ -58,7 +51,7 @@ class Server(ServerModule):
                 helpers = self.get_similar_models(cid)
                 with tf.device('/device:GPU:{}'.format(gpu_id)): 
                     # each client will be trained in parallel
-                    # 传入训练参数
+
                     thrd = threading.Thread(target=self.invoke_client, args=(gpu_client, cid, self.curr_round, sigma, psi, helpers))
                     self.threads.append(thrd)
                     thrd.start()
@@ -69,15 +62,12 @@ class Server(ServerModule):
                 thrd.join()   
             self.threads = []
 
-        #print('-----------以下为fedloss - 本地训练损失-----------')
-      #  print('loss_local长度为：',len(self.lss_local), ' 值为：', self.lss_local)
+
         self.client_similarity(self.updates)
-     #   print('lss/acc长度为:', len(self.lss_share), ' 值为：', self.lss_share, '----', self.acc_share)
-        #print('本地lss长度为:', len(self.lss_local), ' 值为：', self.lss_local)
-     #   print('以上为聚合前-------------------------------------')
+
         self.set_weights(self.aggregate(self.updates))
 
-        #self.lss_, self.acc_ = [], [] # 聚合后清空
+
         self.train.evaluate_after_aggr()
         self.avg_c2s()
         self.avg_s2c()
@@ -100,7 +90,7 @@ class Server(ServerModule):
     def invoke_client(self, client, cid, curr_round, sigma, psi, helpers):
         update = client.train_one_round(cid, curr_round, sigma=sigma, psi=psi, helpers=helpers)
         self.updates.append(update)
-        self.lss_share, self.acc_share = copy.deepcopy(client.train.share_lss), copy.deepcopy(client.train.share_acc) # --修改
+        self.lss_share, self.acc_share = copy.deepcopy(client.train.share_lss), copy.deepcopy(client.train.share_acc)
         self.lss_local = copy.deepcopy(client.train.local_lss)
 
     def client_similarity(self, updates):

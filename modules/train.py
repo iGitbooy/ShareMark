@@ -8,14 +8,7 @@ import tensorflow.keras.metrics as tf_metrics
 from misc.utils import *
 
 class TrainModule:
-    """ Common module for model training 
 
-    This module manages training procedures for both server and client
-    Saves and loads all states whenever client is switched.
-
-    Created by:
-        Wonyong Jeong (wyjeong@kaist.ac.kr)
-    """
     def __init__(self, args, logger):
         self.args = args
         self.logger = logger
@@ -130,10 +123,10 @@ class TrainModule:
         if self.args.scenario == 'labels-at-client':
             bsize_s = self.params['batch_size']
             num_steps = round(len(self.task['x_labeled'])/bsize_s)
-            bsize_u = max(1, math.ceil(len(self.task['x_unlabeled'])/num_steps)) #-- 修改
-        else: # 标签在服务器
+            bsize_u = max(1, math.ceil(len(self.task['x_unlabeled'])/num_steps))
+        else:
             bsize_u = self.params['batch_size']
-            num_steps = max(1,round(len(self.task['x_unlabeled'])/bsize_u))  #修改
+            num_steps = max(1,round(len(self.task['x_unlabeled'])/bsize_u))
 
         self.num_labeled = 0 if not isinstance(self.task['x_labeled'], np.ndarray) else len(self.task['x_labeled'])
         self.num_unlabeled = 0 if not isinstance(self.task['x_unlabeled'], np.ndarray) else len(self.task['x_unlabeled'])
@@ -144,7 +137,7 @@ class TrainModule:
         for epoch in range(self.params['num_epochs']):
             self.state['curr_epoch'] = epoch
             self.num_confident = 0
-            temp_local_lss = 0.0  # fedloss修改
+            temp_local_lss = 0.0
             for i in range(num_steps):
                 if self.args.model in ['fedmatch']:
                     if self.args.scenario == 'labels-at-client':
@@ -165,7 +158,7 @@ class TrainModule:
                         ######################################
                         _, loss_u, num_conf = self.params['loss_fn_u'](x_unlabeled)
                     gradients = tape.gradient(loss_u, self.params['trainables_u'])
-                    temp_local_lss += copy.deepcopy(loss_u)  # fedloss修改
+                    temp_local_lss += copy.deepcopy(loss_u)
 
                     self.optimizer.apply_gradients(zip(gradients, self.params['trainables_u'])) 
                     self.num_confident += num_conf
@@ -186,19 +179,18 @@ class TrainModule:
                             gradients = tape.gradient(loss_final, self.params['trainables']) 
                             self.optimizer.apply_gradients(zip(gradients, self.params['trainables'])) 
                         self.num_confident += num_conf
-            #print(num_steps,'----', bsize_u)
-            self.local_lss.append(float(temp_local_lss / (num_steps * bsize_u)))  # fedloss修改
-            #print('fedloss评估,在本地的训练lss:', float(temp_local_lss / (num_steps * bsize_u)))# fedloss修改
+
+            self.local_lss.append(float(temp_local_lss / (num_steps * bsize_u)))
+
             vlss, vacc = self.validate()
             tlss, tacc = self.evaluate()
 
-            #self.local_lss.append(loss_final) ---
 
-            if self.args.scenario == 'labels-at-server':# and self.args.fedmethod == 'fedshare':
+
+            if self.args.scenario == 'labels-at-server':
                 templss, tempacc = self.evaluate_share()
-                self.share_lss.append(templss) #share修改
+                self.share_lss.append(templss)
                 self.share_acc.append(tempacc)
-                #print('share评估,本地在测试集上的lss:',tlss,',在分享数据集下的lss:',templss)#',在本地数据集上lss：', loss_final)
 
 
             if self.args.model in ['fedmatch']:
@@ -357,14 +349,14 @@ class TrainModule:
                 new_weights[i] += _client_weights[i] * float(1/len(updates))
         return new_weights
 
-    # -------------- 重写函数
+
     def fedshare(self, updates, lss, acc):
         sumLss = 0.0
         sumAcc = 0.0
         w = []
         ori = []
         joinTrain = int(self.args.num_clients * self.args.frac_clients)
-        for l in lss[self.k * joinTrain: self.k * joinTrain + joinTrain]: # 暂时不变， 直接赋值参与客户端数
+        for l in lss[self.k * joinTrain: self.k * joinTrain + joinTrain]:
             ori.append(copy.deepcopy(l))
             sumLss += l
         for i in acc:
@@ -380,28 +372,6 @@ class TrainModule:
             _client_weights = client_weights[c]
             for i in range(len(new_weights)): # by layer
                 new_weights[i] += _client_weights[i] * w[c]#float((sumLss - lss[c])/((len(updates)-1)*sumLss))#float(client_sizes[c]/total_size)
-        self.k += 1
-        return new_weights
-
-    def fedloss(self, updates, lss):
-        sumLss = 0.0
-        w = []
-        ori = []
-        for l in lss[self.k * 5: self.k * 5 + 5]:
-            ori.append(copy.deepcopy(l))
-            sumLss += l
-
-        for i in range(5):
-            w.append(round(float((sumLss - copy.deepcopy(ori[i])) / ((len(updates) - 1) * sumLss)), 5))
-
-        client_weights = [u[0] for u in updates]
-        client_sizes = [u[1] for u in updates]
-        new_weights = [np.zeros_like(w) for w in client_weights[0]]
-        total_size = np.sum(client_sizes)
-        for c in range(len(client_weights)):
-            _client_weights = client_weights[c]
-            for i in range(len(new_weights)):
-                new_weights[i] += _client_weights[i] * w[c]
         self.k += 1
         return new_weights
 

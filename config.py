@@ -1,12 +1,5 @@
 def set_config(args):
-    """ Model, Data, and Training Coniguration
 
-    Specifies detailed configurations, such as batch-size, number of epcohs and rounds, 
-    hyper-parameters, etc., can be set in this file.
-
-    Created by: 
-        Wonyong Jeong (wyjeong@kaist.ac.kr)
-    """
 
     args.gpu_mem = 4 # Gbyte (adjust this as needed)
     args.dataset_path = r''#'/path/to/data/'  # for datasets

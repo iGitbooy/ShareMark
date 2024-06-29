@@ -15,14 +15,6 @@ from config import *
 class DataLoader:
 
     def __init__(self, args):
-        """ Data Loader
-
-        Loads data corresponding to the current client
-        Transforms and augments the given batch images if needed.
-
-        Created by:
-            Wonyong Jeong (wyjeong@kaist.ac.kr)
-        """
 
         self.args = args
         self.shape = (32,32,3)
@@ -71,11 +63,11 @@ class DataLoader:
     def augment(self, images, soft=True):
         if soft:
             indices = np.arange(len(images)).tolist() 
-            sampled = random.sample(indices, int(round(0.5*len(indices)))) # flip horizontally 50% 
+            sampled = random.sample(indices, int(round(0.5*len(indices))))
             images[sampled] = np.fliplr(images[sampled])
-            sampled = random.sample(sampled, int(round(0.25*len(sampled)))) # flip vertically 25% from above
+            sampled = random.sample(sampled, int(round(0.25*len(sampled))))
             images[sampled] = np.flipud(images[sampled])
-            return np.array([shift(img, [random.randint(-2, 2), random.randint(-2, 2), 0]) for img in images]) # random shift
+            return np.array([shift(img, [random.randint(-2, 2), random.randint(-2, 2), 0]) for img in images])
         else:
             if self.args.dataset_id_to_name[self.args.dataset_id] == 'cifar10':
                 return np.array([np.array(self.rand_augment(Image.fromarray(np.reshape(img, self.shape)), M=random.randint(2,5))) for img in images])

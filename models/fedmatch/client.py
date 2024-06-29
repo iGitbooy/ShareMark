@@ -1,5 +1,3 @@
-__author__ = "Wonyong Jeong"
-__email__ = "wyjeong@kaist.ac.kr"
 
 import gc
 #import cv2
@@ -16,14 +14,7 @@ from modules.federated import ClientModule
 class Client(ClientModule):
 
     def __init__(self, gid, args):
-        """ FedMatch Client
 
-        Performs fedmatch cleint algorithms 
-        Inter-client consistency, agreement-based labeling, disjoint learning, etc.
-
-        Created by:
-            Wonyong Jeong (wyjeong@kaist.ac.kr)
-        """
         super(Client, self).__init__(gid, args)
         self.kl_divergence = tf.keras.losses.KLDivergence()
         self.cross_entropy = tf.keras.losses.CategoricalCrossentropy()

@@ -1,5 +1,3 @@
-__author__ = "Wonyong Jeong"
-__email__ = "wyjeong@kaist.ac.kr"
 
 from datetime import datetime
 
@@ -8,11 +6,7 @@ from misc.utils import *
 class Logger:
 
     def __init__(self, args, client_id=None):
-        """ Logging Module
 
-        Created by:
-            Wonyong Jeong (wyjeong@kaist.ac.kr)
-        """
         self.args = args
         self.options = vars(self.args)
 

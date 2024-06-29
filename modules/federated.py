@@ -17,14 +17,7 @@ from modules.train import TrainModule
 class ServerModule:
 
     def __init__(self, args, Client):
-        """ Superclass for Server Module
 
-        This module contains common server functions, 
-        such as laoding data, training global model, handling clients, etc.
-
-        Created by:
-            Wonyong Jeong (wyjeong@kaist.ac.kr)
-        """
         self.args = args
         self.client = Client
         self.clients = {}
@@ -41,11 +34,6 @@ class ServerModule:
         atexit.register(self.atexit)
 
     def limit_gpu_memory(self):
-        """ Limiting gpu memories
-
-        Tensorflow tends to occupy all gpu memory. Specify memory size if needed at config.py.
-        Please set at least 6 or 7 memory for runing safely (w/o memory overflows). 
-        """
         self.gpu_ids = np.arange(len(self.args.gpu.split(','))).tolist()
         self.gpus = tf.config.list_physical_devices('GPU')
         if len(self.gpus)>0:
@@ -57,8 +45,8 @@ class ServerModule:
 
     def run(self):
         self.logger.print('server', 'server process has been started')
-        self.logger.print('server', 'fedmethod = ' + self.args.fedmethod) # --------修改
-        write_file(self.args.log_dir, f'server.txt', 'fedmethod = ' + self.args.fedmethod)# 保存
+        self.logger.print('server', 'fedmethod = ' + self.args.fedmethod)
+        write_file(self.args.log_dir, f'server.txt', 'fedmethod = ' + self.args.fedmethod)
         self.load_data()
         self.build_network()
         self.net.init_state('server')
@@ -134,12 +122,9 @@ class ServerModule:
             return self.train.fedprox(updates)
         elif 'fedshare' == self.args.fedmethod:
             return self.train.fedshare(updates, self.lss_share, self.acc_share)
-        elif 'fedloss' == self.args.fedmethod:
-            return self.train.fedloss(updates, self.lss_local)
         elif 'fedavg' == self.args.fedmethod:
             return self.train.fedavg(updates)
         else:
-            print('设置聚合函数')
             exit()
 
 
@@ -160,21 +145,9 @@ class ServerModule:
         self.logger.print('server', 'all client threads have been destroyed.' )
 
 
-########################################################################################
-########################################################################################
-########################################################################################
-
 class ClientModule:
 
     def __init__(self, gid, args):
-        """ Superclass for Client Module 
-
-        This module contains common client functions, 
-        such as loading data, training local model, switching states, etc.
-
-        Created by:
-            Wonyong Jeong (wyjeong@kaist.ac.kr)
-        """
         self.args = args
         self.state = {'gpu_id': gid}
         self.logger = Logger(self.args) 
@@ -202,13 +175,13 @@ class ClientModule:
                 self.load_data()
         self.state['round_cnt'] += 1
         self.state['curr_round'] = curr_round
-        #######################################
+
         with tf.device('/device:GPU:{}'.format(self.state['gpu_id'])):
             if self.args.model == 'fedmatch':
                 self._train_one_round(client_id, curr_round, sigma, psi, helpers)
             else:
                 self._train_one_round(client_id, curr_round, weights)
-        #######################################
+
         self.save_state()
         return (self.get_weights(), self.get_train_size(), self.state['client_id'], 
                                 self.train.get_c2s(), self.train.get_s2c(),)
